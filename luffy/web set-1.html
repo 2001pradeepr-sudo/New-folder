@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shapes arrangement and circumference calculation</title>
+<style>
+body{
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+font-weight: 600;
+}
+.container{
+justify-content: center;
+align-items: center;
+padding: 20px;
+}.shape{
+border: 1px solid black;
+text-align: center;
+padding: 10px;
+}.square{
+width: 4cm;
+height: 4cm;
+}.rectangle{
+width: 6cm;
+height: 3cm;
+}.circle{
+width: 4cm;
+height: 4cm;
+border-radius: 50%;
+}
+</style>
+</head>
+<body>
+<h1>shapes arrangement and circumference calculatuon - ascending order</h1>
+<div class="container" id="ascendingcontainer"></div>
+<h1>shape arrangement and circumference calculation - descending order</h1>
+<div class="container" id="descendingcontainer"></div>
+<script>
+shapes=[{type:'square',width:4,height:4},{type:'rectangle',width:6,height:3},
+{type:'circle',diameter:4}];
+shapes.forEach(function(shape) {
+if(shape.type==='square'||shape.type === 'rectangle'){
+shape.circumference=2*(shape.width+shape.height);
+}else if(shape.type ==='circle') {
+shape.radius=shape.diameter/2;
+shape.circumference=2*Math.PI*shape.radius;
+}
+});
+var ascendingshapes=shapes.slice().sort(function(a,b){
+    return a.circumference-b.circumference;
+});
+var ascendingshapes=shapes.slice().sort(function(a,b){
+return a.circumference - b.circumference;
+});
+var ascendingcontainer = document.getElementById('ascendingcontainer');
+ascendingshapes.forEach(function(shape){
+var div=document.createElement('div');
+div.className='shape'+ shape.type;
+div.innerText=shape.type.charAt(0).toUpperCase()+shape.type.slice(1)+
+'(circumference:'+shape.circumference.toFixed(2)+')';
+ascendingcontainer.appendChild(div);
+});
+var
+descendingshapes=shapes.slice().sort(functio
+n(a,b){ return b.circumference -
+a.circumference;
+});
+var descendingcontainer = document.getElementById('descendingcontainer');
+descendingshapes.forEach(function(shape){
+var
+div=document.createElement('div'); div.className='shape'+
+shape.type;
+div.innerText=shape.type.charAt(0).toUpperCase()+shape.type.slice(1)+
+'(circumference:'+shape.circumference.toFixed(2)+'cm)';
+descendingcontainer.appendChild(div);
+});
+</script>
+</body>
+</html>

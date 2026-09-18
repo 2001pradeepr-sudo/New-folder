@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demon Slayer: Infinite Castle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Metamorphous&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --transition-fast: 150ms;
+            --transition-normal: 300ms;
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --ease-out: cubic-bezier(0.0, 0, 0.2, 1);
+
+            --stone-dark: #2a2a3a;
+            --stone-mid: #3d3d52;
+            --stone-light: #555570;
+            --accent-red: #c92a2a;
+            --torch-orange: #ff8c42;
+            --moon-blue: #6b8cae;
+            --gold: #d4af37;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+            -ms-touch-action: none;
+            background: #1a1a2e;
+        }
+
+        #game-world {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* HUD */
+        .hud-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-overlay > * {
+            pointer-events: auto;
+        }
+
+        .floor-label {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            width: 128px;
+            height: 96px;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.65));
+        }
+
+        .floor-label img {
+            position: absolute;
+            inset: 0;
+            width: 128px;
+            height: 96px;
+            image-rendering: pixelated;
+        }
+
+        .floor-caption {
+            position: absolute;
+            top: 22px;
+            font-family: 'Metamorphous', serif;
+            font-size: 13px;
+            letter-spacing: 2px;
+            color: #e6c85c;
+            text-shadow: 0 2px 4px #000;
+        }
+
+        #floor-number {
+            position: absolute;
+            top: 38px;
+            font-family: 'Metamorphous', serif;
+            font-size: 30px;
+            line-height: 34px;
+            color: #fff1a3;
+            text-shadow: 0 2px 4px #000, 0 0 12px rgba(212,175,55,0.55);
+        }
+
+        .health-panel {
+            position: absolute;
+            top: 22px;
+            left: 20px;
+            width: 256px;
+            height: 48px;
+            pointer-events: none;
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,0.6));
+        }
+
+        .health-track {
+            position: absolute;
+            left: 22px;
+            top: 14px;
+            width: 212px;
+            height: 20px;
+            overflow: hidden;
+            background: rgba(20,8,15,0.9);
+            border-radius: 3px;
+        }
+
+        .health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #ff6666 0%, #c92a2a 48%, #741b28 100%);
+            box-shadow: 0 0 12px rgba(255,68,68,0.45);
+            transition: width 120ms linear;
+        }
+
+        .health-frame {
+            position: absolute;
+            inset: 0;
+            width: 256px;
+            height: 48px;
+            image-rendering: pixelated;
+        }
+
+        .health-text {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 51px;
+            text-align: center;
+            font: 600 14px 'Inter', sans-serif;
+            color: #ffe9d0;
+            text-shadow: 0 2px 4px #000;
+        }
+
+        .attack-button, .dodge-button, .restart-button {
+            min-width: 112px;
+            min-height: 96px;
+            border: 3px solid rgba(212,175,55,0.75);
+            border-radius: 18px;
+            background: linear-gradient(145deg, rgba(111,30,42,0.95), rgba(53,17,31,0.96));
+            color: #ffe9a6;
+            font: 600 22px 'Metamorphous', serif;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45), inset 0 0 14px rgba(255,140,66,0.16);
+            text-shadow: 0 2px 4px #000;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .attack-button {
+            position: absolute;
+            right: 28px;
+            bottom: 38px;
+            pointer-events: auto;
+        }
+
+        .dodge-button {
+            position: absolute;
+            right: 164px;
+            bottom: 38px;
+            border-color: rgba(139,163,199,0.85);
+            background: linear-gradient(145deg, rgba(41,66,92,0.96), rgba(21,31,51,0.98));
+            pointer-events: auto;
+        }
+
+        .interact-button {
+            position: absolute;
+            right: 300px;
+            bottom: 38px;
+            min-width: 112px;
+            min-height: 96px;
+            border: 3px solid rgba(107,140,174,0.85);
+            border-radius: 18px;
+            background: linear-gradient(145deg, rgba(45,76,102,0.96), rgba(21,31,51,0.98));
+            color: #c9e8ff;
+            font: 600 20px 'Metamorphous', serif;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45), inset 0 0 14px rgba(139,163,199,0.2);
+            text-shadow: 0 2px 4px #000;
+            touch-action: none;
+            user-select: none;
+            display: none;
+            pointer-events: auto;
+        }
+
+        .interact-button small, .dodge-button small, .attack-button small {
+            display: block;
+            margin-top: 4px;
+            font: 600 12px 'Inter', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .attack-button:active, .dodge-button:active, .restart-button:active {
+            transform: translateY(3px) scale(0.97);
+            background: linear-gradient(145deg, rgba(157,45,48,0.98), rgba(77,20,34,0.98));
+        }
+
+        .room-badge {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            padding: 10px 16px;
+            border: 2px solid rgba(212,175,55,0.55);
+            border-radius: 8px;
+            background: rgba(15,12,26,0.72);
+            color: #ffe9a6;
+            font: 600 13px 'Metamorphous', serif;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px #000;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+        }
+
+        .room-badge.puzzle {
+            border-color: rgba(107,140,174,0.9);
+            color: #b9d9f4;
+            box-shadow: 0 0 14px rgba(107,140,174,0.35);
+        }
+
+        .status-message {
+            position: absolute;
+            top: 112px;
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 260px;
+            text-align: center;
+            color: #fff1c7;
+            font: 600 17px 'Inter', sans-serif;
+            text-shadow: 0 2px 5px #000;
+            opacity: 0;
+            transition: opacity 180ms ease;
+        }
+
+        .game-over {
+            position: absolute;
+            inset: 0;
+            z-index: 30;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(8,7,16,0.86);
+            color: #fff1c7;
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        .game-over.visible { display: flex; }
+        .game-over h1 {
+            margin: 0 0 18px;
+            color: #e7b6a1;
+            font: 42px 'Metamorphous', serif;
+            text-shadow: 0 3px 10px #000, 0 0 18px rgba(201,42,42,0.45);
+        }
+        .game-over p {
+            margin: 7px 0;
+            font: 600 20px 'Inter', sans-serif;
+        }
+        .restart-button {
+            margin-top: 26px;
+            min-width: 220px;
+            min-height: 76px;
+            font-size: 22px;
+        }
+
+        /* Joystick */
+        .joystick-zone {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 50%;
+            height: 400px;
+            pointer-events: auto;
+        }
+
+        .joystick-base {
+            position: absolute;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            border: 3px solid rgba(255,255,255,0.15);
+            display: none;
+            pointer-events: none;
+        }
+
+        .joystick-knob {
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.35), rgba(255,255,255,0.12));
+            border: 2px solid rgba(255,255,255,0.3);
+            display: none;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-world">
+        <canvas id="game-canvas"></canvas>
+        <div class="hud-overlay">
+            <div class="floor-label" id="floor-label">
+                <img id="floor-counter-image" alt="" />
+                <div class="floor-caption">FLOOR</div>
+                <div id="floor-number">1</div>
+            </div>
+            <div class="health-panel">
+                <div class="health-track"><div class="health-fill" id="health-fill"></div></div>
+                <img class="health-frame" id="health-frame-image" alt="" />
+                <div class="health-text" id="health-text">100 / 100</div>
+            </div>
+            <div class="room-badge" id="room-badge">DEMON HALL</div>
+            <div class="status-message" id="status-message"></div>
+            <div class="joystick-zone" id="joystick-zone">
+                <div class="joystick-base" id="joystick-base"></div>
+                <div class="joystick-knob" id="joystick-knob"></div>
+            </div>
+            <button class="interact-button" id="interact-button" type="button">⟲<small>PULL LEVER</small></button>
+            <button class="dodge-button" id="dodge-button" type="button">↯<small>DODGE</small></button>
+            <button class="attack-button" id="attack-button" type="button">⚔<small>ATTACK</small></button>
+            <div class="game-over" id="game-over">
+                <h1>The Castle Claims You</h1>
+                <p>Floors cleared: <strong id="floors-cleared">0</strong></p>
+                <p>Demons defeated: <strong id="demons-defeated">0</strong></p>
+                <button class="restart-button" id="restart-button" type="button">Rise Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /*
+     * Demon Slayer: Infinite Castle - Progression System
+     * Runtime-only combat/progression state lives in this function. Creator-tunable
+     * values are read from window.gameConfig and exposed through the edit panel.
+     */
+    async function run(mode) {
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const gameWorld = document.getElementById('game-world');
+
+        function resizeCanvas() {
+            canvas.width = gameWorld.clientWidth;
+            canvas.height = gameWorld.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        ctx.imageSmoothingEnabled = false;
+
+        const cfg = window.gameConfig || {};
+        const warriorCfg = cfg.warrior || {};
+        const roomCfg = cfg.room || {};
+        const puzzleCfg = cfg.puzzle || {};
+        const effectsCfg = cfg.effects || {};
+        const audioCfg = cfg.audio || {};
+        const progression = Object.assign({
+            baseDemonCount: 2,
+            floorDemonIncrease: 1,
+            demonHealth: 48,
+            demonContactDamage: 14,
+            demonSpeed: 1.5,
+            demonScaleFrequency: 3,
+            demonHealthScale: 0.35,
+            upgradeDropRate: 0.8,
+            healthPickupRate: 0.15,
+            healthPickupAmount: 20,
+            stairsMargin: 92,
+            puzzleRoomRate: 0.25
+        }, cfg.progression || {});
+
+        // Cache every image once; no asset lookup happens inside a render loop.
+        const assetCache = {};
+        function cacheImage(id) {
+            const info = lib.getAsset(id);
+            if (!info || !info.url) {
+                lib.log('Warning: Asset ' + id + ' is not available yet.');
+                return null;
+            }
+            const image = new Image();
+            image.decoding = 'async';
+            image.src = info.url;
+            assetCache[id] = image;
+            return image;
+        }
+        [
+            'warrior_sprite', 'stone_floor_tile', 'castle_background', 'torch_flame',
+            'upgrade_orb', 'health_bar_frame', 'floor_counter_bg', 'pressure_plate',
+            'lever', 'gate', 'dodge_roll_effect', 'demon_death_particles'
+        ].forEach(cacheImage);
+        const imageReady = (image) => !!image && image.complete && image.naturalWidth > 0;
+
+        // Audio is decoded once and played as one-shot Web Audio buffers.
+        const audioCache = {};
+        let audioContext = null;
+        let musicSource = null;
+        let musicGain = null;
+        let musicRequested = false;
+        function ensureAudio() {
+            if (!audioContext) {
+                const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtor) audioContext = new AudioCtor();
+            }
+            if (audioContext && audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+            return audioContext;
+        }
+        function cacheSound(id) {
+            const info = lib.getAsset(id);
+            if (!info || !info.url) return;
+            fetch(info.url)
+                .then((response) => response.arrayBuffer())
+                .then((data) => {
+                    const ac = ensureAudio();
+                    return ac ? ac.decodeAudioData(data) : null;
+                })
+                .then((buffer) => {
+                    if (!buffer) return;
+                    audioCache[id] = buffer;
+                    if (id === 'background_music' && musicRequested) startMusic();
+                })
+                .catch(() => lib.log('Warning: Could not load sound ' + id));
+        }
+        [
+            'upgrade_collect_sound', 'warrior_hurt_sound', 'game_over_sound',
+            'background_music', 'dodge_roll_sound', 'puzzle_solve_sound', 'gate_open_sound'
+        ].forEach(cacheSound);
+        function startMusic() {
+            musicRequested = true;
+            const ac = ensureAudio();
+            const buffer = audioCache.background_music;
+            if (!ac || !buffer || musicSource) return;
+            musicSource = ac.createBufferSource();
+            musicGain = ac.createGain();
+            musicGain.gain.value = Math.max(0, Math.min(1, Number(audioCfg.musicVolume) || 0.35));
+            musicSource.buffer = buffer;
+            musicSource.loop = true;
+            musicSource.connect(musicGain).connect(ac.destination);
+            musicSource.start(0);
+        }
+        function playSound(id, volume) {
+            const ac = ensureAudio();
+            const buffer = audioCache[id];
+            if (!ac || !buffer) return;
+            const source = ac.createBufferSource();
+            const gain = ac.createGain();
+            source.buffer = buffer;
+            gain.gain.value = volume == null ? (id === 'game_over_sound' ? 0.7 : 0.85) : volume;
+            source.connect(gain).connect(ac.destination);
+            source.start(0);
+        }
+        function playActionTone(frequency, duration, type) {
+            const ac = ensureAudio();
+            if (!ac) return;
+            const oscillator = ac.createOscillator();
+            const gain = ac.createGain();
+            oscillator.type = type || 'triangle';
+            oscillator.frequency.setValueAtTime(frequency, ac.currentTime);
+            gain.gain.setValueAtTime(0.0001, ac.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, ac.currentTime + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + duration);
+            oscillator.connect(gain).connect(ac.destination);
+            oscillator.start();
+            oscillator.stop(ac.currentTime + duration + 0.02);
+        }
+
+        lib.showGameParameters({
+            name: 'Warrior & Castle Progression',
+            params: {
+                'Move Speed': { key: 'warrior.moveSpeed', type: 'slider', min: 2, max: 10, step: 0.5 },
+                'Jump Force': { key: 'warrior.jumpForce', type: 'slider', min: 400, max: 1200, step: 50 },
+                'Gravity': { key: 'warrior.gravity', type: 'slider', min: 500, max: 2500, step: 50 },
+                'Platform Y (%)': { key: 'room.platformY', type: 'slider', min: 60, max: 95, step: 1 },
+                'Floor Color': { key: 'room.floorColor', type: 'color' },
+                'Wall Color': { key: 'room.wallColor', type: 'color' },
+                'Warrior Color': { key: 'warrior.color', type: 'color' },
+                'Upgrade Drop Rate': { key: 'progression.upgradeDropRate', type: 'slider', min: 0, max: 1, step: 0.05 },
+                'Health Pickup Rate': { key: 'progression.healthPickupRate', type: 'slider', min: 0, max: 1, step: 0.05 },
+                'Demon Scaling Frequency': { key: 'progression.demonScaleFrequency', type: 'slider', min: 1, max: 6, step: 1 },
+                'Puzzle Room Rate': { key: 'progression.puzzleRoomRate', type: 'slider', min: 0, max: 0.5, step: 0.05 },
+                'Puzzle Difficulty': { key: 'puzzle.difficulty', type: 'slider', min: 1, max: 4, step: 1 },
+                'Dodge Cooldown': { key: 'warrior.dodgeCooldown', type: 'slider', min: 0.5, max: 2.5, step: 0.1 },
+                'Screen Shake Intensity': { key: 'effects.screenShakeIntensity', type: 'slider', min: 0, max: 20, step: 1 },
+                'Music Volume': { key: 'audio.musicVolume', type: 'slider', min: 0, max: 1, step: 0.05, onChange: (value) => { if (musicGain) musicGain.gain.value = Number(value) || 0; } },
+                'Starting Health': { key: 'warrior.startingHealth', type: 'slider', min: 25, max: 250, step: 5 }
+            }
+        });
+
+        const ui = {
+            floorNumber: document.getElementById('floor-number'),
+            healthFill: document.getElementById('health-fill'),
+            healthText: document.getElementById('health-text'),
+            healthPanel: document.querySelector('.health-panel'),
+            healthFrame: document.getElementById('health-frame-image'),
+            floorCounter: document.getElementById('floor-counter-image'),
+            status: document.getElementById('status-message'),
+            attack: document.getElementById('attack-button'),
+            dodge: document.getElementById('dodge-button'),
+            interact: document.getElementById('interact-button'),
+            roomBadge: document.getElementById('room-badge'),
+            gameOver: document.getElementById('game-over'),
+            floorsCleared: document.getElementById('floors-cleared'),
+            demonsDefeated: document.getElementById('demons-defeated'),
+            restart: document.getElementById('restart-button')
+        };
+        const healthFrameInfo = lib.getAsset('health_bar_frame');
+        const floorCounterInfo = lib.getAsset('floor_counter_bg');
+        if (healthFrameInfo && healthFrameInfo.url) ui.healthFrame.src = healthFrameInfo.url;
+        if (floorCounterInfo && floorCounterInfo.url) ui.floorCounter.src = floorCounterInfo.url;
+
+        // ---- Runtime State: never written to gameConfig ----
+        const warrior = {
+            x: canvas.width / 2, y: 0, w: 96, h: 96,
+            vx: 0, vy: 0, onGround: false, facing: 1,
+            runFrame: 0, runTimer: 0, attackFlash: 0
+        };
+        const keys = {};
+        const joystick = { active: false, dx: 0, dy: 0 };
+        let floor = 1;
+        let health = Number(warriorCfg.startingHealth) || 100;
+        let maxHealth = health;
+        let attackDamage = Number(warriorCfg.attackDamage) || 25;
+        let demonsDefeated = 0;
+        let floorsCleared = 0;
+        let gameOver = false;
+        let roomCleared = false;
+        let roomType = 'demon';
+        let puzzle = null;
+        let gate = null;
+        let attackCooldown = 0;
+        let dodgeCooldown = 0;
+        let dodgeTimer = 0;
+        let dodgeDirection = 1;
+        let rollEffectTimer = 0;
+        let invulnerable = 0;
+        let shakeTimer = 0;
+        let shakePower = 0;
+        let statusTimer = 0;
+        let demons = [];
+        let pickups = [];
+        let particles = [];
+        let stairs = null;
+        let torchFlicker = 0;
+
+        function getPlatformY() {
+            return canvas.height * ((Number(roomCfg.platformY) || 65) / 100);
+        }
+        function updateHud() {
+            ui.floorNumber.textContent = String(floor);
+            ui.healthFill.style.width = Math.max(0, Math.min(100, health / maxHealth * 100)) + '%';
+            ui.healthText.textContent = Math.ceil(Math.max(0, health)) + ' / ' + Math.ceil(maxHealth);
+        }
+        function showStatus(message, duration) {
+            ui.status.textContent = message;
+            ui.status.style.opacity = '1';
+            statusTimer = duration || 1.8;
+        }
+        function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+            return Math.abs(ax - bx) < (aw + bw) * 0.5 && Math.abs(ay - by) < (ah + bh) * 0.5;
+        }
+        function scaledDemonHealth() {
+            const frequency = Math.max(1, Number(progression.demonScaleFrequency) || 3);
+            const tiers = Math.floor((floor - 1) / frequency);
+            return Math.round((Number(progression.demonHealth) || 48) * (1 + tiers * (Number(progression.demonHealthScale) || 0.35)));
+        }
+        function makeDemon(x) {
+            const frequency = Math.max(1, Number(progression.demonScaleFrequency) || 3);
+            const tier = Math.floor((floor - 1) / frequency);
+            const hp = scaledDemonHealth();
+            return {
+                x, y: getPlatformY(), w: 72, h: 82,
+                health: hp, maxHealth: hp,
+                speed: (Number(progression.demonSpeed) || 1.5) * (1 + tier * 0.12) * 55,
+                contactTimer: 0, hitFlash: 0,
+                phase: Math.random() * Math.PI * 2, alive: true
+            };
+        }
+        function generateRoom() {
+            roomCleared = false;
+            stairs = null;
+            gate = null;
+            puzzle = null;
+            pickups = [];
+            particles = [];
+            demons = [];
+            const puzzleRate = Math.max(0, Math.min(1, Number(progression.puzzleRoomRate) || 0.25));
+            const puzzleInterval = puzzleRate > 0 ? Math.max(1, Math.round(1 / puzzleRate)) : 0;
+            roomType = puzzleInterval > 0 && (floor - 1) % puzzleInterval === 0 ? 'puzzle' : 'demon';
+            const center = canvas.width / 2;
+            if (roomType === 'puzzle') {
+                const difficulty = Math.max(1, Math.min(4, Math.round(Number(puzzleCfg.difficulty) || 2) + Math.floor((floor - 1) / 4)));
+                const plateCount = Math.min(4, difficulty + (floor >= 5 ? 1 : 0));
+                const sequence = [];
+                for (let i = 0; i < plateCount; i++) sequence.push(i);
+                for (let i = sequence.length - 1; i > 0; i--) {
+                    const swap = Math.floor(Math.random() * (i + 1));
+                    [sequence[i], sequence[swap]] = [sequence[swap], sequence[i]];
+                }
+                puzzle = {
+                    difficulty, plateCount, sequence, next: 0,
+                    plates: [], levers: [], solved: false, mistakeTimer: 0
+                };
+                const spacing = Math.min(160, (canvas.width - 180) / Math.max(1, plateCount - 1));
+                const start = center - spacing * (plateCount - 1) / 2;
+                for (let i = 0; i < plateCount; i++) {
+                    puzzle.plates.push({ index: i, x: start + i * spacing, y: getPlatformY(), pressed: false, glow: 0 });
+                }
+                puzzle.levers.push({ x: 86, y: getPlatformY() - 112, active: false, pulse: 0 });
+                puzzle.levers.push({ x: canvas.width - 190, y: getPlatformY() - 112, active: false, pulse: 0 });
+                gate = { x: canvas.width - 120, y: getPlatformY() - 64, w: 64, h: 128, open: false, offset: 0 };
+                ui.interact.style.display = 'block';
+                ui.roomBadge.textContent = 'PUZZLE ROOM';
+                ui.roomBadge.classList.add('puzzle');
+                showStatus('Puzzle room: activate plates in order ' + puzzle.sequence.map((index) => index + 1).join(' → ') + ', or pull both levers.', 4.2);
+            } else {
+                const base = Math.floor(Number(progression.baseDemonCount) || 2);
+                const increase = Math.floor(Number(progression.floorDemonIncrease) || 1);
+                const count = Math.max(1, base + (floor - 1) * increase);
+                const spread = Math.max(120, canvas.width - 250);
+                for (let i = 0; i < count; i++) {
+                    const left = i % 2 === 0;
+                    let x = left ? 84 + (i * 97) % spread : canvas.width - 84 - (i * 97) % spread;
+                    if (Math.abs(x - center) < 145) x = left ? 82 : canvas.width - 82;
+                    demons.push(makeDemon(Math.max(68, Math.min(canvas.width - 68, x))));
+                }
+                ui.interact.style.display = 'none';
+                ui.roomBadge.textContent = 'DEMON HALL';
+                ui.roomBadge.classList.remove('puzzle');
+                showStatus('Floor ' + floor + ': defeat ' + count + ' demon' + (count === 1 ? '' : 's') + '.', 2.3);
+            }
+            warrior.x = center;
+            warrior.y = getPlatformY();
+            warrior.vx = 0;
+            warrior.vy = 0;
+            warrior.onGround = true;
+            updateHud();
+        }
+        function solvePuzzle() {
+            if (!puzzle || puzzle.solved) return;
+            puzzle.solved = true;
+            roomCleared = true;
+            if (gate) gate.open = true;
+            stairs = { x: canvas.width - (Number(progression.stairsMargin) || 92), y: getPlatformY(), pulse: 0 };
+            playSound('puzzle_solve_sound');
+            setTimeout(() => playSound('gate_open_sound'), 220);
+            spawnBurst(canvas.width / 2, getPlatformY() - 72, '#b9d9f4', 22);
+            showStatus('Puzzle solved! The iron gate rises—stairs revealed.', 3.2);
+        }
+        function pressPlate(plate) {
+            if (!puzzle || puzzle.solved || plate.pressed) return;
+            const expected = puzzle.sequence[puzzle.next];
+            if (plate.index === expected) {
+                plate.pressed = true;
+                plate.glow = 1;
+                puzzle.next++;
+                playActionTone(330 + puzzle.next * 70, 0.22, 'sine');
+                showStatus('Plate ' + puzzle.next + ' of ' + puzzle.plateCount + ' activated.', 1.1);
+                if (puzzle.next >= puzzle.sequence.length) solvePuzzle();
+            } else {
+                puzzle.plates.forEach((entry) => { entry.pressed = false; entry.glow = 0; });
+                puzzle.next = 0;
+                puzzle.mistakeTimer = 0.45;
+                playActionTone(110, 0.3, 'sawtooth');
+                showStatus('Wrong sequence! The plates reset.', 1.5);
+            }
+        }
+        function pullLever(lever) {
+            if (!puzzle || puzzle.solved || lever.active) return;
+            lever.active = true;
+            lever.pulse = 1;
+            playSound('gate_open_sound', 0.18);
+            playActionTone(210, 0.25, 'square');
+            if (puzzle.levers.every((entry) => entry.active)) solvePuzzle();
+            else showStatus('Lever pulled. The other lever still waits.', 1.2);
+        }
+        function spawnBurst(x, y, color, count, imageId) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y, color, imageId: imageId || null,
+                    vx: (Math.random() - 0.5) * 190,
+                    vy: (Math.random() - 0.75) * 180,
+                    life: 0.55 + Math.random() * 0.55,
+                    maxLife: 1,
+                    size: 6 + Math.random() * 5
+                });
+            }
+        }
+        function endGame() {
+            if (gameOver) return;
+            gameOver = true;
+            playSound('game_over_sound');
+            ui.floorsCleared.textContent = String(floorsCleared);
+            ui.demonsDefeated.textContent = String(demonsDefeated);
+            ui.gameOver.classList.add('visible');
+        }
+        function damageWarrior(amount) {
+            if (gameOver || invulnerable > 0) return;
+            health = Math.max(0, health - amount);
+            invulnerable = 0.75;
+            warrior.attackFlash = 0.22;
+            shakeTimer = 0.28;
+            shakePower = Math.max(0, Number(effectsCfg.screenShakeIntensity) || 9);
+            spawnBurst(warrior.x, warrior.y - warrior.h * 0.55, '#ff8c42', 8);
+            playSound('warrior_hurt_sound');
+            showStatus('Demon contact!  -' + amount + ' HP', 1.1);
+            updateHud();
+            if (health <= 0) endGame();
+        }
+        function defeatDemon(demon) {
+            if (!demon.alive) return;
+            demon.alive = false;
+            demonsDefeated++;
+            spawnBurst(demon.x, demon.y - demon.h * 0.5, '#ff4444', 16, 'demon_death_particles');
+            const upgradeRate = Math.max(0, Math.min(1, Number(progression.upgradeDropRate) || 0));
+            const healthRate = Math.max(0, Math.min(1 - upgradeRate, Number(progression.healthPickupRate) || 0));
+            const roll = Math.random();
+            if (roll < upgradeRate) {
+                pickups.push({ type: 'upgrade', x: demon.x, y: demon.y - 54, bob: Math.random() * 6.28, collected: false });
+            } else if (roll < upgradeRate + healthRate) {
+                pickups.push({ type: 'health', x: demon.x, y: demon.y - 54, bob: Math.random() * 6.28, collected: false });
+            }
+            if (demons.every((entry) => !entry.alive)) {
+                roomCleared = true;
+                stairs = { x: canvas.width - (Number(progression.stairsMargin) || 92), y: getPlatformY(), pulse: 0 };
+                showStatus('Room cleared! Collect upgrades, then reach the glowing stairs.', 2.8);
+            }
+        }
+        function collectPickup(pickup) {
+            if (pickup.collected) return;
+            pickup.collected = true;
+            if (pickup.type === 'upgrade') {
+                const increase = Number(warriorCfg.attackUpgrade) || 10;
+                attackDamage += increase;
+                playSound('upgrade_collect_sound');
+                showStatus('POWER UPGRADE! Damage +' + increase + '  (now ' + attackDamage + ')', 2.2);
+                spawnBurst(pickup.x, pickup.y, '#ffd700', 16);
+            } else {
+                const amount = Number(progression.healthPickupAmount) || 20;
+                health = Math.min(maxHealth, health + amount);
+                showStatus('Health restored +' + amount + ' HP', 1.4);
+                spawnBurst(pickup.x, pickup.y, '#ff6666', 12);
+                updateHud();
+            }
+        }
+        function attemptDodge() {
+            if (mode !== 'play' || gameOver || dodgeCooldown > 0 || dodgeTimer > 0) return;
+            ensureAudio();
+            const input = getInput();
+            dodgeDirection = input.mx < -0.1 ? -1 : input.mx > 0.1 ? 1 : warrior.facing;
+            dodgeCooldown = Math.max(0.25, Number(warriorCfg.dodgeCooldown) || 1.1);
+            dodgeTimer = 0.38;
+            rollEffectTimer = 0.42;
+            invulnerable = Math.max(invulnerable, 0.48);
+            warrior.vx = dodgeDirection * 720;
+            warrior.vy = -80;
+            playSound('dodge_roll_sound');
+            showStatus('Dodge roll — invulnerable!', 0.65);
+        }
+        function attemptInteract() {
+            if (mode !== 'play' || gameOver || roomType !== 'puzzle' || !puzzle) return;
+            const range = 105;
+            puzzle.levers.forEach((lever) => {
+                if (!lever.active && Math.abs(warrior.x - lever.x) < range && Math.abs((warrior.y - warrior.h * 0.5) - lever.y) < 100) pullLever(lever);
+            });
+        }
+        function restartGame() {
+            gameOver = false;
+            floor = 1;
+            floorsCleared = 0;
+            demonsDefeated = 0;
+            maxHealth = Number(warriorCfg.startingHealth) || 100;
+            health = maxHealth;
+            attackDamage = Number(warriorCfg.attackDamage) || 25;
+            ui.gameOver.classList.remove('visible');
+            generateRoom();
+        }
+        function attemptAttack() {
+            if (mode !== 'play' || gameOver || attackCooldown > 0) return;
+            ensureAudio();
+            attackCooldown = Number(warriorCfg.attackCooldown) || 0.38;
+            warrior.attackFlash = 0.18;
+            playActionTone(190, 0.09, 'triangle');
+            const range = Number(warriorCfg.attackRange) || 125;
+            let hitSomething = false;
+            demons.forEach((demon) => {
+                if (!demon.alive) return;
+                const dx = demon.x - warrior.x;
+                const facingTarget = dx === 0 || Math.sign(dx) === warrior.facing;
+                const inRange = Math.abs(dx) <= range && facingTarget;
+                const vertical = Math.abs((demon.y - demon.h * 0.5) - (warrior.y - warrior.h * 0.5)) < 100;
+                if (inRange && vertical) {
+                    demon.health -= attackDamage;
+                    demon.hitFlash = 0.16;
+                    hitSomething = true;
+                    spawnBurst(demon.x - warrior.facing * 24, demon.y - demon.h * 0.55, '#fff1a3', 5);
+                    if (demon.health <= 0) defeatDemon(demon);
+                }
+            });
+            if (hitSomething) showStatus('Blade strike  ' + attackDamage + ' damage', 0.55);
+        }
+
+        // ---- Input ----
+        function getInput() {
+            let mx = 0;
+            let jump = false;
+            if (keys.a || keys.arrowleft) mx -= 1;
+            if (keys.d || keys.arrowright) mx += 1;
+            if (keys.w || keys.arrowup || keys[' ']) jump = true;
+            if (joystick.active) {
+                mx += joystick.dx;
+                if (joystick.dy < -0.4) jump = true;
+            }
+            return { mx: Math.max(-1, Math.min(1, mx)), jump };
+        }
+        if (mode === 'play') {
+            window.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                if (['a','d','w',' ','arrowleft','arrowright','arrowup','z','j','x','k','shift','e'].includes(key)) {
+                    e.preventDefault();
+                    keys[key] = true;
+                    if (['z','j','x'].includes(key) && !e.repeat) attemptAttack();
+                    if ((key === 'k' || key === 'shift') && !e.repeat) attemptDodge();
+                    if (key === 'e' && !e.repeat) attemptInteract();
+                }
+            });
+            window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+            window.addEventListener('blur', () => {
+                Object.keys(keys).forEach((key) => { keys[key] = false; });
+                joystick.active = false;
+                joystick.dx = 0;
+                joystick.dy = 0;
+            });
+            ui.attack.addEventListener('pointerdown', (e) => { e.preventDefault(); startMusic(); attemptAttack(); });
+            ui.dodge.addEventListener('pointerdown', (e) => { e.preventDefault(); startMusic(); attemptDodge(); });
+            ui.interact.addEventListener('pointerdown', (e) => { e.preventDefault(); startMusic(); attemptInteract(); });
+            ui.restart.addEventListener('pointerdown', (e) => { e.preventDefault(); restartGame(); });
+
+            const zone = document.getElementById('joystick-zone');
+            const base = document.getElementById('joystick-base');
+            const knob = document.getElementById('joystick-knob');
+            let touchId = null;
+            let centerX = 0;
+            let centerY = 0;
+            const maxRadius = 65;
+            const moveJoystick = (e) => {
+                for (const touch of e.changedTouches) {
+                    if (touch.identifier !== touchId) continue;
+                    let dx = touch.clientX - centerX;
+                    let dy = touch.clientY - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > maxRadius) {
+                        dx = dx / distance * maxRadius;
+                        dy = dy / distance * maxRadius;
+                    }
+                    knob.style.left = (centerX + dx - 32) + 'px';
+                    knob.style.top = (centerY + dy - 32) + 'px';
+                    joystick.dx = Math.abs(dx / maxRadius) < 0.15 ? 0 : dx / maxRadius;
+                    joystick.dy = Math.abs(dy / maxRadius) < 0.15 ? 0 : dy / maxRadius;
+                }
+            };
+            const endJoystick = (e) => {
+                for (const touch of e.changedTouches) {
+                    if (touch.identifier !== touchId) continue;
+                    touchId = null;
+                    base.style.display = 'none';
+                    knob.style.display = 'none';
+                    joystick.active = false;
+                    joystick.dx = 0;
+                    joystick.dy = 0;
+                }
+            };
+            zone.addEventListener('touchstart', (e) => {
+                if (touchId !== null) return;
+                const touch = e.changedTouches[0];
+                touchId = touch.identifier;
+                centerX = touch.clientX;
+                centerY = touch.clientY;
+                base.style.display = 'block';
+                knob.style.display = 'block';
+                base.style.left = (centerX - 80) + 'px';
+                base.style.top = (centerY - 80) + 'px';
+                knob.style.left = (centerX - 32) + 'px';
+                knob.style.top = (centerY - 32) + 'px';
+                joystick.active = true;
+                joystick.dx = 0;
+                joystick.dy = 0;
+            }, { passive: true });
+            zone.addEventListener('touchmove', moveJoystick, { passive: true });
+            window.addEventListener('touchmove', moveJoystick, { passive: true });
+            zone.addEventListener('touchend', endJoystick);
+            zone.addEventListener('touchcancel', endJoystick);
+            window.addEventListener('touchend', endJoystick);
+            window.addEventListener('touchcancel', endJoystick);
+            canvas.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse') { startMusic(); attemptAttack(); }
+            });
+            startMusic();
+        } else {
+            ui.attack.style.display = 'none';
+            ui.dodge.style.display = 'none';
+            ui.interact.style.display = 'none';
+            ui.healthPanel.style.display = 'none';
+            ui.status.style.display = 'none';
+        }
+
+        // ---- Update ----
+        function updateWarrior(dt) {
+            if (mode !== 'play' || gameOver) return;
+            const input = getInput();
+            if (dodgeTimer > 0) {
+                dodgeTimer = Math.max(0, dodgeTimer - dt);
+                warrior.x += dodgeDirection * 720 * dt;
+                warrior.vy += 500 * dt;
+                warrior.y += warrior.vy * dt;
+                const rollPlatformY = getPlatformY();
+                if (warrior.y >= rollPlatformY) { warrior.y = rollPlatformY; warrior.vy = 0; warrior.onGround = true; }
+                warrior.x = Math.max(32 + warrior.w / 2, Math.min(canvas.width - 32 - warrior.w / 2, warrior.x));
+                return;
+            }
+            const speed = (Number(warriorCfg.moveSpeed) || 6) * 80;
+            const gravity = Number(warriorCfg.gravity) || 2450;
+            const jumpForce = Number(warriorCfg.jumpForce) || 1200;
+            const platformY = getPlatformY();
+            warrior.vx = input.mx * speed;
+            warrior.x += warrior.vx * dt;
+            if (input.mx > 0.1) warrior.facing = 1;
+            else if (input.mx < -0.1) warrior.facing = -1;
+            if (Math.abs(warrior.vx) > 10 && warrior.onGround) {
+                warrior.runTimer += dt;
+                warrior.runFrame = warrior.runTimer * 10;
+            } else {
+                warrior.runTimer = 0;
+                warrior.runFrame = 0;
+            }
+            if (input.jump && warrior.onGround) {
+                warrior.vy = -jumpForce;
+                warrior.onGround = false;
+            }
+            warrior.vy += gravity * dt;
+            warrior.y += warrior.vy * dt;
+            if (warrior.y >= platformY) {
+                warrior.y = platformY;
+                warrior.vy = 0;
+                warrior.onGround = true;
+            }
+            const halfW = warrior.w / 2;
+            if (warrior.x - halfW < 32) warrior.x = 32 + halfW;
+            if (warrior.x + halfW > canvas.width - 32) warrior.x = canvas.width - 32 - halfW;
+            if (gate && !gate.open && warrior.x + halfW > gate.x - gate.w / 2) {
+                warrior.x = gate.x - gate.w / 2 - halfW;
+            }
+        }
+        function updateCombat(dt) {
+            if (mode !== 'play' || gameOver) return;
+            attackCooldown = Math.max(0, attackCooldown - dt);
+            dodgeCooldown = Math.max(0, dodgeCooldown - dt);
+            invulnerable = Math.max(0, invulnerable - dt);
+            rollEffectTimer = Math.max(0, rollEffectTimer - dt);
+            shakeTimer = Math.max(0, shakeTimer - dt);
+            warrior.attackFlash = Math.max(0, warrior.attackFlash - dt);
+            statusTimer = Math.max(0, statusTimer - dt);
+            if (statusTimer <= 0) ui.status.style.opacity = '0';
+            if (roomType === 'puzzle' && puzzle) {
+                puzzle.mistakeTimer = Math.max(0, puzzle.mistakeTimer - dt);
+                puzzle.plates.forEach((plate) => {
+                    plate.glow = Math.max(0, plate.glow - dt * 0.45);
+                    if (!puzzle.solved && !plate.pressed && rectsOverlap(warrior.x, warrior.y - 18, warrior.w * 0.55, 40, plate.x, plate.y - 10, 58, 34)) pressPlate(plate);
+                });
+                puzzle.levers.forEach((lever) => { lever.pulse = Math.max(0, lever.pulse - dt * 2); });
+            }
+            if (gate && gate.open) gate.offset = Math.max(-gate.h - 8, gate.offset - 180 * dt);
+            demons.forEach((demon) => {
+                if (!demon.alive) return;
+                demon.hitFlash = Math.max(0, demon.hitFlash - dt);
+                demon.contactTimer = Math.max(0, demon.contactTimer - dt);
+                const dx = warrior.x - demon.x;
+                const distance = Math.abs(dx);
+                if (distance > 58) demon.x += Math.sign(dx) * demon.speed * dt;
+                demon.x = Math.max(58, Math.min(canvas.width - 58, demon.x));
+                if (distance < (warrior.w + demon.w) * 0.42 && Math.abs(warrior.y - demon.y) < 72 && demon.contactTimer <= 0) {
+                    demon.contactTimer = 0.95;
+                    damageWarrior(Number(progression.demonContactDamage) || 14);
+                    warrior.x += Math.sign(warrior.x - demon.x || 1) * 22;
+                }
+            });
+            pickups.forEach((pickup) => {
+                if (pickup.collected) return;
+                pickup.bob += dt * 4;
+                const py = pickup.y + Math.sin(pickup.bob) * 7;
+                if (rectsOverlap(warrior.x, warrior.y - warrior.h * 0.5, warrior.w * 0.62, warrior.h, pickup.x, py, 52, 52)) collectPickup(pickup);
+            });
+            pickups = pickups.filter((pickup) => !pickup.collected);
+            if (roomCleared && stairs) {
+                stairs.pulse += dt;
+                if (Math.abs(warrior.x - stairs.x) < 62 && warrior.onGround) {
+                    floorsCleared++;
+                    floor++;
+                    health = Math.min(maxHealth, health + 8);
+                    generateRoom();
+                }
+            }
+            particles.forEach((particle) => {
+                particle.life -= dt;
+                particle.x += particle.vx * dt;
+                particle.y += particle.vy * dt;
+                particle.vy += 180 * dt;
+            });
+            particles = particles.filter((particle) => particle.life > 0);
+        }
+
+        // ---- Drawing ----
+        function drawCastleBackground() {
+            const W = canvas.width;
+            const H = canvas.height;
+            const gradient = ctx.createLinearGradient(0, 0, 0, H);
+            gradient.addColorStop(0, '#0f0f1a');
+            gradient.addColorStop(0.55, '#1a1a24');
+            gradient.addColorStop(1, '#222238');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, W, H);
+            const bg = assetCache.castle_background;
+            if (!imageReady(bg)) return;
+            const scale = Math.max(W / bg.naturalWidth, H / bg.naturalHeight);
+            const dw = bg.naturalWidth * scale;
+            const dh = bg.naturalHeight * scale;
+            const offset = (warrior.x - W * 0.5) * 0.06;
+            ctx.drawImage(bg, (W - dw) * 0.5 - offset, 0, dw, dh);
+            const vignette = ctx.createRadialGradient(W * 0.5, H * 0.38, H * 0.12, W * 0.5, H * 0.45, H * 0.82);
+            vignette.addColorStop(0, 'rgba(10,10,20,0)');
+            vignette.addColorStop(1, 'rgba(8,8,16,0.48)');
+            ctx.fillStyle = vignette;
+            ctx.fillRect(0, 0, W, H);
+        }
+        function drawTorch(x, y) {
+            ctx.fillStyle = '#3a3030';
+            ctx.fillRect(x, y + 30, 8, 38);
+            ctx.fillRect(x - 7, y + 24, 22, 8);
+            const flame = assetCache.torch_flame;
+            if (!imageReady(flame)) return;
+            const sway = Math.sin(torchFlicker * 9 + x * 0.03) * 2.5;
+            const pulse = 1 + Math.sin(torchFlicker * 13 + x) * 0.06;
+            const glow = ctx.createRadialGradient(x + 4, y + 20, 0, x + 4, y + 20, 112);
+            glow.addColorStop(0, 'rgba(255,140,66,0.18)');
+            glow.addColorStop(0.35, 'rgba(255,140,66,0.06)');
+            glow.addColorStop(1, 'rgba(255,140,66,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(x - 108, y - 92, 224, 224);
+            ctx.save();
+            ctx.translate(x + 4 + sway, y + 24);
+            ctx.scale(1 / pulse, pulse);
+            ctx.globalAlpha = 0.92 + Math.sin(torchFlicker * 11 + x) * 0.08;
+            ctx.drawImage(flame, -16, -24, 32, 48);
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+        function drawRoom() {
+            const W = canvas.width;
+            const H = canvas.height;
+            const platformY = getPlatformY();
+            const floorH = H - platformY;
+            drawCastleBackground();
+            ctx.fillStyle = roomCfg.wallColor || '#3b2f2b';
+            ctx.fillRect(0, 0, 32, platformY);
+            ctx.fillRect(W - 32, 0, 32, platformY);
+            ctx.fillStyle = 'rgba(180,190,210,0.12)';
+            ctx.fillRect(5, 0, 7, platformY);
+            ctx.fillRect(W - 27, 0, 7, platformY);
+            const tile = assetCache.stone_floor_tile;
+            if (imageReady(tile)) {
+                const pattern = ctx.createPattern(tile, 'repeat');
+                ctx.save();
+                ctx.translate(0, platformY);
+                ctx.fillStyle = pattern;
+                ctx.fillRect(0, 0, W, floorH);
+                ctx.restore();
+                ctx.fillStyle = roomCfg.floorColor || '#463857';
+                ctx.globalAlpha = 0.12;
+                ctx.fillRect(0, platformY, W, floorH);
+                ctx.globalAlpha = 1;
+            } else {
+                ctx.fillStyle = roomCfg.floorColor || '#463857';
+                ctx.fillRect(0, platformY, W, floorH);
+            }
+            ctx.fillStyle = 'rgba(12,12,22,0.75)';
+            ctx.fillRect(0, platformY, W, 8);
+            ctx.fillStyle = 'rgba(139,139,154,0.25)';
+            ctx.fillRect(0, platformY, W, 2);
+            drawTorch(100, platformY - 180);
+            drawTorch(W - 120, platformY - 180);
+        }
+        function drawDemon(demon) {
+            if (!demon.alive) return;
+            const bob = Math.sin(torchFlicker * 2.8 + demon.phase) * 4;
+            const x = demon.x - demon.w / 2;
+            const y = demon.y - demon.h + bob;
+            ctx.save();
+            ctx.fillStyle = demon.hitFlash > 0 ? '#ffb3a3' : '#441b4f';
+            ctx.shadowColor = '#c92a2a';
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.arc(demon.x, y + 29, 24, Math.PI, 0);
+            ctx.lineTo(x + demon.w - 9, y + demon.h - 8);
+            ctx.lineTo(x + 9, y + demon.h - 8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ff5555';
+            ctx.fillRect(demon.x - 13, y + 25, 7, 5);
+            ctx.fillRect(demon.x + 6, y + 25, 7, 5);
+            ctx.fillStyle = '#25132f';
+            ctx.beginPath();
+            ctx.moveTo(demon.x - 20, y + 12); ctx.lineTo(demon.x - 34, y - 13); ctx.lineTo(demon.x - 8, y + 5);
+            ctx.moveTo(demon.x + 20, y + 12); ctx.lineTo(demon.x + 34, y - 13); ctx.lineTo(demon.x + 8, y + 5);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(10,5,20,0.9)';
+            ctx.fillRect(demon.x - 31, y - 20, 62, 7);
+            ctx.fillStyle = '#db4c55';
+            ctx.fillRect(demon.x - 31, y - 20, 62 * Math.max(0, demon.health / demon.maxHealth), 7);
+            ctx.restore();
+        }
+        function drawPickup(pickup) {
+            const y = pickup.y + Math.sin(pickup.bob) * 7;
+            const orb = assetCache.upgrade_orb;
+            ctx.save();
+            ctx.globalAlpha = 0.9 + Math.sin(torchFlicker * 8 + pickup.bob) * 0.1;
+            if (pickup.type === 'upgrade' && imageReady(orb)) {
+                ctx.drawImage(orb, pickup.x - 25, y - 25, 50, 50);
+            } else {
+                const isHealth = pickup.type === 'health';
+                ctx.shadowColor = isHealth ? '#ff4444' : '#ffd700';
+                ctx.shadowBlur = 18;
+                ctx.fillStyle = isHealth ? '#e9515b' : '#ffd700';
+                ctx.beginPath();
+                ctx.arc(pickup.x, y, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                if (isHealth) {
+                    ctx.fillStyle = '#fff0e5';
+                    ctx.fillRect(pickup.x - 4, y - 11, 8, 22);
+                    ctx.fillRect(pickup.x - 11, y - 4, 22, 8);
+                }
+            }
+            ctx.restore();
+        }
+        function drawPuzzleObjects() {
+            if (roomType !== 'puzzle' || !puzzle) return;
+            const plateImage = assetCache.pressure_plate;
+            puzzle.plates.forEach((plate) => {
+                ctx.save();
+                if (plate.pressed || plate.glow > 0) {
+                    ctx.shadowColor = '#6b8cae';
+                    ctx.shadowBlur = plate.pressed ? 25 : 14;
+                }
+                if (imageReady(plateImage)) ctx.drawImage(plateImage, plate.x - 29, plate.y - 30, 58, 58);
+                else {
+                    ctx.fillStyle = plate.pressed ? '#4a4a5a' : '#8b8b9a';
+                    ctx.fillRect(plate.x - 26, plate.y - 12, 52, 20);
+                }
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = plate.pressed ? '#b9d9f4' : '#e6c85c';
+                ctx.font = '600 13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(String(plate.index + 1), plate.x, plate.y - 39);
+                ctx.restore();
+            });
+            const leverImage = assetCache.lever;
+            puzzle.levers.forEach((lever) => {
+                ctx.save();
+                ctx.shadowColor = lever.active ? '#6b8cae' : '#d4af37';
+                ctx.shadowBlur = lever.active ? 20 : 8;
+                if (imageReady(leverImage)) {
+                    ctx.translate(lever.x, lever.y);
+                    if (!lever.active) ctx.scale(-1, 1);
+                    ctx.drawImage(leverImage, -16, -24, 32, 48);
+                } else {
+                    ctx.fillStyle = '#3d3d52';
+                    ctx.fillRect(lever.x - 14, lever.y - 24, 28, 48);
+                    ctx.strokeStyle = lever.active ? '#6b8cae' : '#8b8b9a';
+                    ctx.lineWidth = 7;
+                    ctx.beginPath();
+                    ctx.moveTo(lever.x, lever.y + 10);
+                    ctx.lineTo(lever.x + (lever.active ? 15 : -12), lever.y - 18);
+                    ctx.stroke();
+                }
+                ctx.restore();
+                ctx.fillStyle = '#dbeeff';
+                ctx.font = '600 12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(lever.active ? 'ACTIVE' : 'E', lever.x, lever.y - 36);
+            });
+        }
+        function drawGate() {
+            if (!gate || (gate.open && gate.offset <= -gate.h)) return;
+            const gateImage = assetCache.gate;
+            const drawY = gate.y + gate.offset;
+            ctx.save();
+            ctx.globalAlpha = 0.96;
+            if (imageReady(gateImage)) ctx.drawImage(gateImage, gate.x - gate.w / 2, drawY - gate.h / 2, gate.w, gate.h);
+            else {
+                ctx.fillStyle = '#2a2a3a';
+                ctx.fillRect(gate.x - gate.w / 2, drawY - gate.h / 2, gate.w, gate.h);
+                ctx.strokeStyle = '#6b7280';
+                ctx.lineWidth = 5;
+                for (let i = -24; i <= 24; i += 16) { ctx.beginPath(); ctx.moveTo(gate.x + i, drawY - 58); ctx.lineTo(gate.x + i, drawY + 58); ctx.stroke(); }
+            }
+            ctx.restore();
+        }
+        function drawStairs() {
+            if (!stairs) return;
+            const pulse = 1 + Math.sin(stairs.pulse * 5) * 0.08;
+            ctx.save();
+            ctx.translate(stairs.x, stairs.y);
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 22;
+            ctx.fillStyle = '#c59636';
+            for (let i = 0; i < 5; i++) ctx.fillRect(-38 + i * 9, -i * 10, 48 - i * 8, 10);
+            ctx.fillStyle = 'rgba(255,237,78,0.24)';
+            ctx.beginPath();
+            ctx.arc(0, -25, 48 * pulse, Math.PI, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff1a3';
+            ctx.font = '600 14px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('ASCEND', 0, -72);
+            ctx.restore();
+        }
+        function drawParticles() {
+            const particleImage = assetCache.demon_death_particles;
+            particles.forEach((particle) => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+                if (particle.imageId === 'demon_death_particles' && imageReady(particleImage)) {
+                    const size = particle.size || 8;
+                    ctx.drawImage(particleImage, particle.x - size / 2, particle.y - size / 2, size, size);
+                } else {
+                    ctx.fillStyle = particle.color;
+                    ctx.shadowColor = particle.color;
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(particle.x - 4, particle.y - 4, 8, 8);
+                }
+                ctx.restore();
+            });
+        }
+        function drawWarrior() {
+            const sprite = assetCache.warrior_sprite;
+            const x = warrior.x - warrior.w / 2;
+            const y = warrior.y - warrior.h;
+            ctx.save();
+            if (rollEffectTimer > 0) {
+                const effect = assetCache.dodge_roll_effect;
+                ctx.globalAlpha = Math.min(1, rollEffectTimer / 0.18);
+                if (imageReady(effect)) {
+                    ctx.translate(warrior.x - dodgeDirection * 34, warrior.y - 56);
+                    if (dodgeDirection < 0) ctx.scale(-1, 1);
+                    ctx.drawImage(effect, -48, -24, 96, 48);
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                } else {
+                    ctx.fillStyle = 'rgba(139,163,199,0.5)';
+                    ctx.fillRect(x - dodgeDirection * 42, y + 20, warrior.w, 24);
+                }
+                ctx.globalAlpha = 1;
+            }
+            if (invulnerable > 0 && Math.floor(invulnerable * 16) % 2 === 0) ctx.globalAlpha = 0.48;
+            if (warrior.facing === -1) {
+                ctx.translate(warrior.x, 0);
+                ctx.scale(-1, 1);
+                ctx.translate(-warrior.x, 0);
+            }
+            if (imageReady(sprite)) {
+                ctx.drawImage(sprite, x, y, warrior.w, warrior.h);
+            } else {
+                ctx.fillStyle = warriorCfg.color || '#8b7d4b';
+                ctx.fillRect(x + 24, y + 20, 48, 64);
+                ctx.fillStyle = '#d4af37';
+                ctx.fillRect(x + 20, y + 10, 56, 28);
+            }
+            if (warrior.attackFlash > 0) {
+                ctx.globalAlpha = warrior.attackFlash / 0.18;
+                ctx.strokeStyle = '#fff1a3';
+                ctx.lineWidth = 8;
+                ctx.shadowColor = '#ffd700';
+                ctx.shadowBlur = 16;
+                ctx.beginPath();
+                ctx.arc(warrior.x + warrior.facing * 32, warrior.y - 52, 46, warrior.facing === 1 ? -1.1 : 2.1, warrior.facing === 1 ? 1.1 : 4.1);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // ---- Edit Mode ----
+        let editSelected = false;
+        let editDragging = false;
+        let editOffX = 0;
+        if (mode === 'edit') {
+            warrior.y = getPlatformY();
+            warrior.onGround = true;
+            const getPointer = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const sx = canvas.width / rect.width;
+                const sy = canvas.height / rect.height;
+                const point = e.touches ? e.touches[0] : e;
+                return { x: (point.clientX - rect.left) * sx, y: (point.clientY - rect.top) * sy };
+            };
+            const hitTest = (x, y) => x >= warrior.x - warrior.w / 2 && x <= warrior.x + warrior.w / 2 && y >= warrior.y - warrior.h && y <= warrior.y;
+            const onDown = (e) => {
+                e.preventDefault();
+                const point = getPointer(e);
+                if (hitTest(point.x, point.y)) {
+                    editSelected = true;
+                    editDragging = true;
+                    editOffX = warrior.x - point.x;
+                } else editSelected = false;
+            };
+            const onMove = (e) => {
+                if (!editDragging) return;
+                e.preventDefault();
+                const point = getPointer(e);
+                warrior.x = point.x + editOffX;
+                warrior.y = getPlatformY();
+                warrior.x = Math.max(32 + warrior.w / 2, Math.min(canvas.width - 32 - warrior.w / 2, warrior.x));
+            };
+            canvas.addEventListener('mousedown', onDown);
+            canvas.addEventListener('mousemove', onMove);
+            canvas.addEventListener('mouseup', () => { editDragging = false; });
+            canvas.addEventListener('touchstart', onDown, { passive: false });
+            canvas.addEventListener('touchmove', onMove, { passive: false });
+            canvas.addEventListener('touchend', () => { editDragging = false; });
+        }
+
+        warrior.y = getPlatformY();
+        warrior.onGround = true;
+        updateHud();
+        if (mode === 'play') generateRoom();
+
+        // ---- Game Loop ----
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.11);
+            lastTime = timestamp;
+            torchFlicker += dt;
+            if (mode === 'edit' && !editDragging) warrior.y = getPlatformY();
+            updateWarrior(dt);
+            updateCombat(dt);
+            ctx.save();
+            if (shakeTimer > 0) {
+                const strength = shakePower * (shakeTimer / 0.28);
+                ctx.translate((Math.random() - 0.5) * strength, (Math.random() - 0.5) * strength);
+            }
+            ctx.clearRect(-30, -30, canvas.width + 60, canvas.height + 60);
+            drawRoom();
+            if (mode === 'play') {
+                drawPuzzleObjects();
+                drawGate();
+                drawStairs();
+                demons.forEach(drawDemon);
+                pickups.forEach(drawPickup);
+                drawParticles();
+            }
+            drawWarrior();
+            if (mode === 'edit' && editSelected) {
+                ctx.strokeStyle = 'rgba(212,175,55,0.8)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 4]);
+                ctx.strokeRect(warrior.x - warrior.w / 2 - 4, warrior.y - warrior.h - 4, warrior.w + 8, warrior.h + 8);
+                ctx.setLineDash([]);
+            }
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
+        }
+        requestAnimationFrame((timestamp) => { lastTime = timestamp; gameLoop(timestamp); });
+    }
+    </script>
+</body>
+</html>
