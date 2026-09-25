@@ -1,7 +1,0 @@
-name=input()
-score=int(input()) 
-dep=input()
-sco=(score/10)
-print("My Name is",name)
-print("My Score is",sco,"/10")
-print("My department is",dep)
